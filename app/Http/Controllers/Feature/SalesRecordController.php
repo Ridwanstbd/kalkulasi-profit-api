@@ -307,7 +307,7 @@ class SalesRecordController extends Controller
             
             $profitPerUnit = $salesRecord->selling_price - $salesRecord->hpp;
             $profitPercentage = $salesRecord->selling_price > 0 ? 
-                round(($profitPerUnit / $salesRecord->selling_price) * 100, 2) : 0;
+                round(($profitPerUnit / $salesRecord->selling_price) * 100, 0) : 0;
             $subTotal = $salesRecord->selling_price * $salesRecord->number_of_sales;
             $totalProfit = $profitPerUnit * $salesRecord->number_of_sales;
             

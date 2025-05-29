@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Feature;
 
 use App\Http\Controllers\Controller;
-use App\Models\PriceSchema;
+use App\Models\PriceScheme;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -38,7 +38,7 @@ class PriceSchemeController extends Controller
             ]);
         }
 
-        $priceSchemas = PriceSchema::where('user_id', $user->id)
+        $priceSchemas = PriceScheme::where('user_id', $user->id)
             ->where('product_id', $product->id)
             ->with(['product'])
             ->get();
@@ -89,7 +89,7 @@ class PriceSchemeController extends Controller
         try {
             DB::beginTransaction();
             
-            $maxLevelOrder = PriceSchema::where('user_id', $user->id)
+            $maxLevelOrder = PriceScheme::where('user_id', $user->id)
                             ->where('product_id', $productId)
                             ->max('level_order') ?? 0;
             
@@ -100,7 +100,7 @@ class PriceSchemeController extends Controller
             if ($nextLevelOrder == 1) {
                 $purchasePrice = $product->hpp ?? $request->purchase_price;
             } else {
-                $previousSchema = PriceSchema::where('user_id', $user->id)
+                $previousSchema = PriceScheme::where('user_id', $user->id)
                                 ->where('product_id', $productId)
                                 ->where('level_order', $maxLevelOrder)
                                 ->first();
@@ -135,7 +135,7 @@ class PriceSchemeController extends Controller
             }
             
             $profitAmount = $sellingPrice - $purchasePrice;
-            $priceSchema = PriceSchema::create([
+            $priceSchema = PriceScheme::create([
                 'user_id' => $user->id,
                 'product_id' => $productId,
                 'level_name' => $request->level_name,
@@ -168,7 +168,7 @@ class PriceSchemeController extends Controller
     public function show(string $id)
     {
         $user = JWTAuth::user();
-        $priceSchema = PriceSchema::where('id',$id)->where('user_id',$user->id)->first();
+        $priceSchema = PriceScheme::where('id',$id)->where('user_id',$user->id)->first();
         if(!$priceSchema){
             return response()->json([
                 'success'=> false,
@@ -205,7 +205,7 @@ class PriceSchemeController extends Controller
         }
     
         $user = JWTAuth::user();
-        $priceSchema = PriceSchema::where('id', $id)
+        $priceSchema = PriceScheme::where('id', $id)
                         ->where('user_id', $user->id)
                         ->first();
                         
@@ -228,7 +228,7 @@ class PriceSchemeController extends Controller
                     $product = Product::find($priceSchema->product_id);
                     $purchasePrice = $product ? $product->hpp : $priceSchema->purchase_price;
                 } else {
-                    $previousSchema = PriceSchema::where('user_id', $user->id)
+                    $previousSchema = PriceScheme::where('user_id', $user->id)
                                     ->where('product_id', $priceSchema->product_id)
                                     ->where('level_order', $newLevelOrder - 1)
                                     ->first();
@@ -269,7 +269,7 @@ class PriceSchemeController extends Controller
             $newLevelOrder = $request->level_order;
             
             if($request->has('level_order') && $newLevelOrder != $oldLevelOrder) {
-                $maxLevel = PriceSchema::where('user_id', $user->id)
+                $maxLevel = PriceScheme::where('user_id', $user->id)
                                 ->where('product_id', $priceSchema->product_id)
                                 ->count();
                 
@@ -277,18 +277,18 @@ class PriceSchemeController extends Controller
                 $updateData['level_order'] = $newLevelOrder;
                 
                 if ($newLevelOrder > $oldLevelOrder) {
-                    PriceSchema::where('user_id', $user->id)
+                    PriceScheme::where('user_id', $user->id)
                         ->where('product_id', $priceSchema->product_id)
                         ->whereBetween('level_order', [$oldLevelOrder + 1, $newLevelOrder])
                         ->decrement('level_order');
                 } else {
-                    PriceSchema::where('user_id', $user->id)
+                    PriceScheme::where('user_id', $user->id)
                         ->where('product_id', $priceSchema->product_id)
                         ->whereBetween('level_order', [$newLevelOrder, $oldLevelOrder - 1])
                         ->increment('level_order');
                 }
                 
-                $nextLevelSchema = PriceSchema::where('user_id', $user->id)
+                $nextLevelSchema = PriceScheme::where('user_id', $user->id)
                                 ->where('product_id', $priceSchema->product_id)
                                 ->where('level_order', $newLevelOrder + 1)
                                 ->first();
@@ -307,7 +307,7 @@ class PriceSchemeController extends Controller
             $priceSchema->update($updateData);
             
             if ($sellingPrice != $priceSchema->getOriginal('selling_price')) {
-                $nextSchema = PriceSchema::where('user_id', $user->id)
+                $nextSchema = PriceScheme::where('user_id', $user->id)
                             ->where('product_id', $priceSchema->product_id)
                             ->where('level_order', $priceSchema->level_order + 1)
                             ->first();
@@ -339,7 +339,7 @@ class PriceSchemeController extends Controller
     public function destroy(string $id)
     {
         $user = JWTAuth::user();
-        $priceSchema = PriceSchema::where('id', $id)
+        $priceSchema = PriceScheme::where('id', $id)
                         ->where('user_id', $user->id)
                         ->first();
                         
@@ -355,19 +355,19 @@ class PriceSchemeController extends Controller
             $productId = $priceSchema->product_id;
             $deletedLevelOrder = $priceSchema->level_order;
             
-            $nextSchema = PriceSchema::where('user_id', $user->id)
+            $nextSchema = PriceScheme::where('user_id', $user->id)
                         ->where('product_id', $productId)
                         ->where('level_order', $deletedLevelOrder + 1)
                         ->first();
             
-            $previousSchema = PriceSchema::where('user_id', $user->id)
+            $previousSchema = PriceScheme::where('user_id', $user->id)
                         ->where('product_id', $productId)
                         ->where('level_order', $deletedLevelOrder - 1)
                         ->first();
             
             $priceSchema->delete();
             
-            PriceSchema::where('user_id', $user->id)
+            PriceScheme::where('user_id', $user->id)
                 ->where('product_id', $productId)
                 ->where('level_order', '>', $deletedLevelOrder)
                 ->decrement('level_order');

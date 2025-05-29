@@ -17,8 +17,8 @@ return new class extends Migration
             $table->string('name', 100);
             $table->string('sku', 12)->unique();
             $table->text('description')->nullable();
-            $table->decimal('hpp', 12, 2)->default(0);
-            $table->decimal('selling_price', 12, 2)->default(0);
+            $table->decimal('hpp', 12, 2)->default(0)->nullable();
+            $table->decimal('selling_price', 12, 2)->default(0)->nullable();
             $table->timestamps();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });

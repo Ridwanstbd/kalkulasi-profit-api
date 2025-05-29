@@ -19,8 +19,8 @@ class OperationalExpenseController extends Controller
     {
         $user = JWTAuth::user();
         
-        $year = $request->input('year', Carbon::now()->year);
-        $month = $request->input('month', Carbon::now()->month);
+        $year = (int)$request->input('year', Carbon::now()->year);
+        $month = (int)$request->input('month', Carbon::now()->month);
         
         $query = OperationalExpense::with('category')
             ->where('user_id', $user->id);
@@ -32,17 +32,13 @@ class OperationalExpenseController extends Controller
             $query->where('month', $month);
         }
         
-        // Get expenses
         $expenses = $query->get();
         
-        // Get available years and months for filtering
         $availableYears = OperationalExpense::getAvailableYears($user->id);
         $availableMonths = $year ? OperationalExpense::getAvailableMonths($year, $user->id) : [];
         
-        // Group expenses by category for the summary
         $expensesByCategory = $expenses->groupBy('expense_category_id');
         
-        // Get all categories for this user
         $categories = ExpenseCategory::where('user_id', $user->id)->get();
         
         $summary = [];
@@ -114,7 +110,6 @@ class OperationalExpenseController extends Controller
             ], 422);
         }
         
-        // Verifikasi bahwa kategori milik user yang sama
         $categoryBelongsToUser = ExpenseCategory::where('id', $request->expense_category_id)
             ->where('user_id', $user->id)
             ->exists();

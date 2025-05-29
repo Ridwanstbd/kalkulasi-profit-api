@@ -19,10 +19,20 @@ class StatsController extends Controller
         $year = $request->input('year', Carbon::now()->year);
         $month = $request->input('month', Carbon::now()->month);
         
-        $validationResult = $this->validateIndexParams($year, $month);
-        if ($validationResult !== true) {
-            return $validationResult;
+        $validator = Validator::make([
+            'year' => $year,
+            'month' => $month,
+        ], [
+            'year' => 'required|integer|min:2000|max:2900',
+            'month' => 'nullable|integer|min:1|max:12',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
         }
+        
+        $year = (int) $year;
+        $month = $month ? (int) $month : null;
         
         $availableYears = SalesRecord::where('user_id', $user->id)
             ->selectRaw('DISTINCT year')
@@ -61,35 +71,18 @@ class StatsController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'total_sales' => round($totalSales, 2),
-                'total_cost' => round($totalCost, 2),
-                'total_variable_cost' => round($totalVariableCost, 2),
-                'total_operational_cost' => round($totalOperationalCost, 2),
-                'total_salary_expenses' => round($totalSalaryExpenses, 2),
-                'gross_profit' => round($grossProfit, 2),
-                'net_profit' => round($netProfit, 2),
+                'total_sales' => floatval($totalSales),
+                'total_cost' => floatval($totalCost),
+                'total_variable_cost' => floatval($totalVariableCost),
+                'total_operational_cost' => floatval($totalOperationalCost),
+                'total_salary_expenses' => floatval($totalSalaryExpenses),
+                'gross_profit' => floatval($grossProfit),
+                'net_profit' => floatval($netProfit),
                 'year' => $year,
                 'month' => $month,
                 'availableYears' => $availableYears,
                 'availableMonths' => $availableMonths
             ]
         ]);
-    }
-
-    private function validateIndexParams(int $year, ?int $month)
-    {
-        $validator = Validator::make([
-            'year' => $year,
-            'month' => $month,
-        ], [
-            'year' => 'required|integer|min:2000|max:2900',
-            'month' => 'nullable|integer|min:1|max:12',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-        
-        return true;
     }
 }

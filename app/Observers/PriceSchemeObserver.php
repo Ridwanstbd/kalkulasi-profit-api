@@ -2,43 +2,43 @@
 
 namespace App\Observers;
 
-use App\Models\PriceSchema;
+use App\Models\PriceScheme;
 use App\Models\Product;
 
-class PriceSchemaObserver
+class PriceSchemeObserver
 {
     /**
-     * Handle the PriceSchema "created" event.
+     * Handle the PriceScheme "created" event.
      */
-    public function created(PriceSchema $priceSchema): void
+    public function created(PriceScheme $priceScheme): void
     {
-        $this->updateProductSellingPrice($priceSchema);
+        $this->updateProductSellingPrice($priceScheme);
     }
 
     /**
-     * Handle the PriceSchema "updated" event.
+     * Handle the PriceScheme "updated" event.
      */
-    public function updated(PriceSchema $priceSchema): void
+    public function updated(PriceScheme $priceScheme): void
     {
-        $this->updateProductSellingPrice($priceSchema);
+        $this->updateProductSellingPrice($priceScheme);
     }
 
     /**
-     * Handle the PriceSchema "deleted" event.
+     * Handle the PriceScheme "deleted" event.
      */
-    public function deleted(PriceSchema $priceSchema): void
+    public function deleted(PriceScheme $priceScheme): void
     {
-        $this->updateProductSellingPrice($priceSchema);
+        $this->updateProductSellingPrice($priceScheme);
     }
 
     /**
      * Update the product's selling price based on the highest level order schema
      */
-    private function updateProductSellingPrice(PriceSchema $priceSchema): void
+    private function updateProductSellingPrice(PriceScheme $priceScheme): void
     {
-        $productId = $priceSchema->product_id;
+        $productId = $priceScheme->product_id;
         
-        $highestLevelSchema = PriceSchema::where('product_id', $productId)
+        $highestLevelSchema = PriceScheme::where('product_id', $productId)
             ->orderBy('level_order', 'desc')
             ->first();
         

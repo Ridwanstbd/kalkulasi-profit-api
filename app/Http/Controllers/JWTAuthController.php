@@ -20,11 +20,10 @@ class JWTAuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6|confirmed',
-            'password_confirmation' => 'required|string|min:6'
         ]);
         
         if ($validator->fails()){
-            return response()->json($validator->errors()->toJson(),400);
+            return response()->json(['errors' => $validator->errors()], 422);
         }
         try {
             DB::beginTransaction();
@@ -35,6 +34,9 @@ class JWTAuthController extends Controller
                 'password' => Hash::make($request->password),
             ]);
             $userRole = Role::where('name','user')->first();
+            if (!$userRole) {
+                throw new \Exception('Registration failed: Role "user" not found.');
+            }
             $user->roles()->attach($userRole);
 
             DB::commit();
@@ -48,7 +50,7 @@ class JWTAuthController extends Controller
                     'token' => $token
                 ]
             ], 201);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
             return response()->json([
                 'success' => false,
@@ -69,14 +71,16 @@ class JWTAuthController extends Controller
                 'success' => false,
                 'message' => 'Validasi error',
                 'errors' => $validator->errors()
-            ], 400);
+            ], 422);
         }
         try {
-            $credentials = $request->only('email', 'password');
+            $ttl = $request->remember_me ? config('jwt.refresh_ttl') : config('jwt.ttl');
+            $credentials = [
+                'email' => strtolower($request->email),
+                'password' => $request->password
+            ];
             $remember = $request->input('remember_me', false);
-            if($request->remember_me) {
-                config(['jwt.ttl' => 10080]);
-            }          
+                      
             if (!$token = JWTAuth::attempt($credentials)) {
                 return response()->json([
                     'success' => false,
@@ -88,7 +92,7 @@ class JWTAuthController extends Controller
                 $user->remember_token = hash('sha256', $token);
                 $user->save();
             }
-            $ttl = config('jwt.ttl');
+            
            
             return response()->json([
                 'success' => true,
@@ -163,7 +167,7 @@ class JWTAuthController extends Controller
         } catch (JWTException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tidak bisa memperbarui token',
+                'message' => 'Token not valid',
                 'error' => $e->getMessage()
             ], 401);
         }

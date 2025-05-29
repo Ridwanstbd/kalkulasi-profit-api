@@ -2,9 +2,9 @@
 
 namespace App\Providers;
 
-use App\Models\PriceSchema;
+use App\Models\PriceScheme;
 use App\Models\User;
-use App\Observers\PriceSchemaObserver;
+use App\Observers\PriceSchemeObserver;
 use App\Observers\UserObserver;
 use Illuminate\Support\ServiceProvider;
 
@@ -24,7 +24,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->app['router']->aliasMiddleware('role', \App\Http\Middleware\CheckRole::class);
-        PriceSchema::observe(PriceSchemaObserver::class);
+        PriceScheme::observe(PriceSchemeObserver::class);
         User::observe(UserObserver::class);
     }
 }

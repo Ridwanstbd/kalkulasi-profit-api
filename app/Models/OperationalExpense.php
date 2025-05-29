@@ -63,6 +63,14 @@ class OperationalExpense extends Model
     }
 
     /**
+     * Get all expense categories with their related expenses and totals
+     */
+    public function expenseCategory()
+    {
+        return $this->belongsTo(ExpenseCategory::class);
+    }
+
+    /**
      * Get all expenses grouped by category
      */
     public static function getExpensesByCategory($year = null, $month = null)

@@ -17,25 +17,51 @@ class ExpenseCategoryController extends Controller
     public function index()
     {
         $user = JWTAuth::user();
-        $categories = ExpenseCategory::with('operationalExpenses')
-            ->where('user_id',$user->id)
-            ->get();
+        
+        $categories = ExpenseCategory::where('user_id', $user->id)->get();
 
-        $categories->each(function ($category) {
-            $category->total_amount = $category->total_amount_attribute;
+        $transformedCategories = [];
+        
+        foreach ($categories as $category) {
+            $operationalExpenses = OperationalExpense::where('user_id', $user->id)
+                ->where('expense_category_id', $category->id)
+                ->get();
+            
+            $categoryData = [
+                'id' => $category->id,
+                'name' => $category->name,
+                'description' => $category->description,
+                'is_salary' => $category->is_salary,
+                'user_id' => $category->user_id,
+                'created_at' => $category->created_at,
+                'updated_at' => $category->updated_at,
+                'total_amount' => number_format($operationalExpenses->sum('total_amount'), 2, '.', '')
+            ];
             
             if ($category->is_salary) {
-                $category->total_employees = $category->total_employee_count_attribute;
+                $categoryData['total_employees'] = $operationalExpenses->count();
             }
-        });
+            
+            $transformedCategories[] = $categoryData;
+        }
+
+        $totalSalary = OperationalExpense::whereHas('expenseCategory', function($query) use ($user) {
+                $query->where('user_id', $user->id)->where('is_salary', true);
+            })->sum('total_amount');
+            
+        $totalOperational = OperationalExpense::whereHas('expenseCategory', function($query) use ($user) {
+                $query->where('user_id', $user->id)->where('is_salary', false);
+            })->sum('total_amount');
+            
+        $grandTotal = $totalSalary + $totalOperational;
 
         return response()->json([
             'success' => true,
-            'data' => $categories,
+            'data' => $transformedCategories,
             'summary' => [
-                'total_salary' => OperationalExpense::getTotalSalaryExpenses(),
-                'total_operational' => OperationalExpense::getTotalOperationalExpenses(),
-                'grand_total' => OperationalExpense::getGrandTotal()
+                'total_salary' => number_format($totalSalary, 2, '.', ''),
+                'total_operational' => number_format($totalOperational, 2, '.', ''),
+                'grand_total' => number_format($grandTotal, 2, '.', '')
             ]
         ]);
     }
@@ -81,11 +107,7 @@ class ExpenseCategoryController extends Controller
     {
         $user = JWTAuth::user();
         
-        $category = ExpenseCategory::with(['operationalExpenses' => function ($query) use ($user) {
-                $query->where('user_id', $user->id);
-            }])
-            ->where('user_id', $user->id)
-            ->find($id);
+        $category = ExpenseCategory::where('user_id', $user->id)->find($id);
 
         if (!$category) {
             return response()->json([
@@ -94,15 +116,28 @@ class ExpenseCategoryController extends Controller
             ], 404);
         }
 
-        $category->total_amount = $category->total_amount_attribute;
+        $operationalExpenses = OperationalExpense::where('user_id', $user->id)
+            ->where('expense_category_id', $category->id)
+            ->get();
+
+        $categoryData = [
+            'id' => $category->id,
+            'name' => $category->name,
+            'description' => $category->description,
+            'is_salary' => $category->is_salary,
+            'user_id' => $category->user_id,
+            'created_at' => $category->created_at,
+            'updated_at' => $category->updated_at,
+            'total_amount' => number_format($operationalExpenses->sum('total_amount'), 2, '.', '')
+        ];
         
         if ($category->is_salary) {
-            $category->total_employees = $category->total_employee_count_attribute;
+            $categoryData['total_employees'] = $operationalExpenses->count();
         }
 
         return response()->json([
             'success' => true,
-            'data' => $category
+            'data' => $categoryData
         ]);
     }
 
@@ -160,9 +195,8 @@ class ExpenseCategoryController extends Controller
             ], 404);
         }
 
-        // Periksa apakah kategori memiliki item biaya
-        $hasExpenses = $category->operationalExpenses()
-            ->where('user_id', $user->id)
+        $hasExpenses = OperationalExpense::where('user_id', $user->id)
+            ->where('expense_category_id', $category->id)
             ->exists();
         
         if ($hasExpenses) {

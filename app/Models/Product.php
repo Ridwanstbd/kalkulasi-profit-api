@@ -30,7 +30,7 @@ class Product extends Model
 
     public function priceSchemas()
     {
-        return $this->hasMany(PriceSchema::class);
+        return $this->hasMany(PriceScheme::class);
     }
 
     public function salesRecords ()
